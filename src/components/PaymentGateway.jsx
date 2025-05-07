@@ -1,0 +1,318 @@
+"use client"
+
+import { useState } from "react"
+import { FaCreditCard, FaPaypal, FaApplePay, FaGooglePay, FaLock } from "react-icons/fa"
+import PropTypes from 'prop-types'
+
+const PaymentGateway = ({ total, onPaymentComplete }) => {
+  const [paymentMethod, setPaymentMethod] = useState("card")
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: "",
+    cardName: "",
+    expiryDate: "",
+    cvv: "",
+  })
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [errors, setErrors] = useState({})
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+
+    // Format card number with spaces
+    if (name === "cardNumber") {
+      const formattedValue = value
+        .replace(/\s/g, "")
+        .replace(/(\d{4})/g, "$1 ")
+        .trim()
+        .slice(0, 19)
+
+      setCardDetails({
+        ...cardDetails,
+        [name]: formattedValue,
+      })
+      return
+    }
+
+    // Format expiry date
+    if (name === "expiryDate") {
+      const formattedValue = value
+        .replace(/\D/g, "")
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .slice(0, 5)
+
+      setCardDetails({
+        ...cardDetails,
+        [name]: formattedValue,
+      })
+      return
+    }
+
+    setCardDetails({
+      ...cardDetails,
+      [name]: value,
+    })
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
+
+    if (!cardDetails.cardNumber || cardDetails.cardNumber.replace(/\s/g, "").length !== 16) {
+      newErrors.cardNumber = "Please enter a valid 16-digit card number"
+    }
+
+    if (!cardDetails.cardName) {
+      newErrors.cardName = "Please enter the name on card"
+    }
+
+    if (!cardDetails.expiryDate || !cardDetails.expiryDate.match(/^\d{2}\/\d{2}$/)) {
+      newErrors.expiryDate = "Please enter a valid expiry date (MM/YY)"
+    }
+
+    if (!cardDetails.cvv || cardDetails.cvv.length < 3) {
+      newErrors.cvv = "Please enter a valid CVV"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+
+    if (validateForm()) {
+      setIsProcessing(true)
+
+      // Simulate payment processing
+      setTimeout(() => {
+        setIsProcessing(false)
+        onPaymentComplete({
+          success: true,
+          transactionId: Math.random().toString(36).substring(2, 15),
+          method: paymentMethod,
+        })
+      }, 2000)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center gap-2 mb-6">
+        <FaCreditCard className="text-green-500 text-xl" />
+        <h2 className="text-xl font-semibold text-gray-800">Payment</h2>
+      </div>
+
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-gray-600">Total Amount:</span>
+          <span className="text-2xl font-bold text-green-600">₹{total.toFixed(2)}</span>
+        </div>
+        <div className="h-1 w-full bg-gray-100 rounded-full">
+          <div className="h-1 bg-green-500 rounded-full w-full"></div>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-gray-700 font-medium mb-3">Select Payment Method</h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("card")}
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+              paymentMethod === "card" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <FaCreditCard className="text-2xl mb-1 text-gray-700" />
+            <span className="text-sm">Card</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("paypal")}
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+              paymentMethod === "paypal" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <FaPaypal className="text-2xl mb-1 text-blue-600" />
+            <span className="text-sm">PayPal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("applepay")}
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+              paymentMethod === "applepay" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <FaApplePay className="text-2xl mb-1 text-gray-800" />
+            <span className="text-sm">Apple Pay</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("googlepay")}
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+              paymentMethod === "googlepay" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <FaGooglePay className="text-2xl mb-1 text-gray-800" />
+            <span className="text-sm">Google Pay</span>
+          </button>
+        </div>
+      </div>
+
+      {paymentMethod === "card" && (
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="cardNumber" className="block text-gray-700 text-sm font-medium mb-1">
+              Card Number
+            </label>
+            <input
+              type="text"
+              id="cardNumber"
+              name="cardNumber"
+              value={cardDetails.cardNumber}
+              onChange={handleInputChange}
+              placeholder="1234 5678 9012 3456"
+              maxLength="19"
+              className={`w-full px-3 py-2 border rounded-md ${
+                errors.cardNumber ? "border-red-500" : "border-gray-300"
+              }`}
+            />
+            {errors.cardNumber && <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>}
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="cardName" className="block text-gray-700 text-sm font-medium mb-1">
+              Name on Card
+            </label>
+            <input
+              type="text"
+              id="cardName"
+              name="cardName"
+              value={cardDetails.cardName}
+              onChange={handleInputChange}
+              placeholder="John Doe"
+              className={`w-full px-3 py-2 border rounded-md ${errors.cardName ? "border-red-500" : "border-gray-300"}`}
+            />
+            {errors.cardName && <p className="text-red-500 text-xs mt-1">{errors.cardName}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label htmlFor="expiryDate" className="block text-gray-700 text-sm font-medium mb-1">
+                Expiry Date
+              </label>
+              <input
+                type="text"
+                id="expiryDate"
+                name="expiryDate"
+                value={cardDetails.expiryDate}
+                onChange={handleInputChange}
+                placeholder="MM/YY"
+                className={`w-full px-3 py-2 border rounded-md ${
+                  errors.expiryDate ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+              {errors.expiryDate && <p className="text-red-500 text-xs mt-1">{errors.expiryDate}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="cvv" className="block text-gray-700 text-sm font-medium mb-1">
+                CVV
+              </label>
+              <input
+                type="text"
+                id="cvv"
+                name="cvv"
+                value={cardDetails.cvv}
+                onChange={handleInputChange}
+                placeholder="123"
+                maxLength="4"
+                className={`w-full px-3 py-2 border rounded-md ${errors.cvv ? "border-red-500" : "border-gray-300"}`}
+              />
+              {errors.cvv && <p className="text-red-500 text-xs mt-1">{errors.cvv}</p>}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+          >
+            {isProcessing ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                <FaLock />
+                Pay ₹{total.toFixed(2)}
+              </>
+            )}
+          </button>
+
+          <div className="mt-4 flex items-center justify-center text-xs text-gray-500">
+            <FaLock className="mr-1" />
+            <span>Your payment information is secure</span>
+          </div>
+        </form>
+      )}
+
+      {paymentMethod !== "card" && (
+        <div className="text-center p-6">
+          <p className="text-gray-600 mb-4">
+            You&apos;ll be redirected to{" "}
+            {paymentMethod === "paypal" ? "PayPal" : paymentMethod === "applepay" ? "Apple Pay" : "Google Pay"} to
+            complete your payment.
+          </p>
+          <button
+            onClick={handleSubmit}
+            disabled={isProcessing}
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+          >
+            {isProcessing ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>Continue to Payment</>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+PaymentGateway.propTypes = {
+  total: PropTypes.number.isRequired,
+  onPaymentComplete: PropTypes.func.isRequired
+}
+
+export default PaymentGateway
