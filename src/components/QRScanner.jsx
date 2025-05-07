@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect } from "react"
 import { FaCamera, FaInfoCircle, FaQrcode } from "react-icons/fa"
-import PropTypes from 'prop-types'
 
 const QRScanner = ({ onScan }) => {
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState(null)
-  const [isCameraSupported, setIsCameraSupported] = useState(true)
+  const [permissionState, setPermissionState] = useState("prompt") // "prompt", "granted", "denied"
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
@@ -15,6 +14,23 @@ const QRScanner = ({ onScan }) => {
     // Check if BarcodeDetector is supported
     if (!("BarcodeDetector" in window)) {
       setError("Barcode Detector API is not supported in this browser.")
+    }
+
+    // Check camera permission status if available
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions
+        .query({ name: "camera" })
+        .then((permissionStatus) => {
+          setPermissionState(permissionStatus.state)
+
+          // Listen for permission changes
+          permissionStatus.onchange = () => {
+            setPermissionState(permissionStatus.state)
+          }
+        })
+        .catch((err) => {
+          console.error("Permission query error:", err)
+        })
     }
 
     return () => {
@@ -34,13 +50,24 @@ const QRScanner = ({ onScan }) => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        console.log('Camera stream set:', stream)
         setIsScanning(true)
-        scanBarcode()
+        videoRef.current.onloadedmetadata = () => {
+          scanBarcode()
+        }
+        setPermissionState("granted")
+      } else {
+        console.error('videoRef.current is not available')
       }
     } catch (err) {
       console.error("Error accessing camera:", err)
-      setError("Unable to access camera. Please check permissions.")
-      setIsCameraSupported(false)
+
+      if (err.name === "NotAllowedError") {
+        setError("Camera access denied. Please allow camera access in your browser settings.")
+        setPermissionState("denied")
+      } else {
+        setError("Unable to access camera. Please check your device.")
+      }
     }
   }
 
@@ -76,16 +103,27 @@ const QRScanner = ({ onScan }) => {
           const barcode = barcodes[0]
           console.log("Barcode detected:", barcode.rawValue)
 
-          // Mock product lookup based on barcode
-          const mockProduct = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: `Product ${barcode.rawValue.substring(0, 4)}`,
-            price: Number.parseFloat((Math.random() * 20 + 1).toFixed(2)),
-            image: `/placeholder.svg?height=100&width=100`,
-            quantity: 1,
-          }
+          // REMOVE BEFORE DEPLOYMENT: Replace with actual product lookup from database
+          // This mock product should be replaced with real data from your backend
+          // Uncomment the following block for testing with mock data
+          // const mockProduct = {
+          //   id: Math.random().toString(36).substr(2, 9),
+          //   name: `Product ${barcode.rawValue.substring(0, 4)}`,
+          //   price: Number.parseFloat((Math.random() * 20 + 1).toFixed(2)),
+          //   serialNumber: `PRD${Math.floor(Math.random() * 10000).toString().padStart(5, "0")}`,
+          //   quantity: 1,
+          // }
 
-          onScan(mockProduct)
+          // Only call onScan if mockProduct is defined (for real implementation, replace with actual product)
+          // if (mockProduct) {
+          //   onScan(mockProduct)
+          //   stopCamera()
+          // } else {
+          //   // Continue scanning
+          //   requestAnimationFrame(scanBarcode)
+          // }
+
+          // For now, just stop scanning after detection (remove this in production)
           stopCamera()
         } else {
           // Continue scanning
@@ -118,12 +156,22 @@ const QRScanner = ({ onScan }) => {
 
       <div className="relative">
         <div className="bg-gray-100 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
-          {isScanning ? (
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center justify-center p-8 text-gray-500">
+          <video
+            ref={videoRef}
+            className={`w-full h-64 sm:h-80 object-cover rounded-md border border-gray-200 mb-4 ${!isScanning ? 'hidden' : ''}`}
+            autoPlay
+            playsInline
+            muted
+          />
+          {!isScanning && (
+            <div className="flex flex-col items-center justify-center p-8 text-gray-500 w-full h-full absolute top-0 left-0">
               <FaCamera className="text-5xl mb-4 text-gray-300" />
-              <p className="text-center">Camera inactive</p>
+              <p className="text-center">{permissionState === "denied" ? "Camera access denied" : "Camera inactive"}</p>
+              {permissionState === "denied" && (
+                <p className="text-xs text-center mt-2 text-gray-400">
+                  Please enable camera access in your browser settings
+                </p>
+              )}
             </div>
           )}
           <canvas ref={canvasRef} className="hidden" />
@@ -138,10 +186,7 @@ const QRScanner = ({ onScan }) => {
 
         <button
           onClick={toggleScanning}
-          disabled={!isCameraSupported && !isScanning}
-          className={`mt-4 w-full py-3 px-4 rounded-md font-medium flex items-center justify-center gap-2 ${
-            isScanning ? "bg-red-500 hover:bg-red-600 text-white" : "bg-green-500 hover:bg-green-600 text-white"
-          } transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+          className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-md font-medium transition-colors text-lg sm:text-xl"
         >
           {isScanning ? "Stop Scanning" : "Start Scanning"}
         </button>
@@ -152,10 +197,6 @@ const QRScanner = ({ onScan }) => {
       </div>
     </div>
   )
-}
-
-QRScanner.propTypes = {
-  onScan: PropTypes.func.isRequired
 }
 
 export default QRScanner
