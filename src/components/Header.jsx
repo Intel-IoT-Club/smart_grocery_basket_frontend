@@ -2,7 +2,7 @@ import { FaShoppingBasket } from "react-icons/fa"
 
 const Header = () => {
   return (
-    <header className="!bg-green-600 p-4 shadow-lg" style={{ backgroundColor: '#059669' }}>
+    <header className="header-green p-4 shadow-md">
       <div className="container mx-auto">
         <div className="flex flex-col items-center justify-center text-white">
           <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Header from "./components/Header"
 import GroceryBasket from "./components/GroceryBasket"
 import QRScanner from "./components/QRScanner"
@@ -9,10 +9,41 @@ import OrderSummary from "./components/OrderSummary"
 import Footer from "./components/Footer"
 import "./App.css"
 
+// REMOVE BEFORE DEPLOYMENT: Mock data for testing purposes only
+/*
+const mockProducts = [
+  {
+    id: "1",
+    name: "Organic Bananas",
+    price: 2.99,
+    serialNumber: "PRD00123",
+    quantity: 1,
+  },
+  {
+    id: "2",
+    name: "Whole Milk",
+    price: 3.49,
+    serialNumber: "PRD00456",
+    quantity: 2,
+  },
+]
+*/
+
 function App() {
   const [basketItems, setBasketItems] = useState([])
   const [currentStep, setCurrentStep] = useState("shopping") // shopping, payment, confirmation
   const [orderDetails, setOrderDetails] = useState(null)
+  const [showDemo, setShowDemo] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(false)
+
+  // REMOVE BEFORE DEPLOYMENT: For demo purposes, load mock data
+  /*
+  useEffect(() => {
+    if (showDemo) {
+      setBasketItems(mockProducts)
+    }
+  }, [showDemo])
+  */
 
   const handleScan = (product) => {
     // Check if product already exists in basket
@@ -50,7 +81,9 @@ function App() {
   }
 
   const proceedToPayment = () => {
-    setCurrentStep("payment")
+    if (basketItems.length > 0) {
+      setCurrentStep("payment")
+    }
   }
 
   const handlePaymentComplete = (paymentResult) => {
@@ -90,42 +123,54 @@ function App() {
       <main className="flex-grow container mx-auto px-4 py-6">
         {currentStep === "shopping" && (
           <>
-            <div className="mb-6">
+            <div className="mb-6 flex justify-between items-center">
               <h1 className="text-2xl font-bold text-gray-800">Smart Grocery Basket</h1>
+
+              {/* REMOVE BEFORE DEPLOYMENT: Demo data button */}
+              {/*
+              <button
+                onClick={() => setShowDemo(!showDemo)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm transition-colors"
+              >
+                {showDemo ? "Clear Demo Data" : "Load Demo Data"}
+              </button>
+              */}
             </div>
 
-            {/* Mobile view: Scanner first, then Basket */}
-            <div className="flex flex-col lg:hidden gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Scanner on the left in desktop, on top in mobile */}
               <QRScanner onScan={handleScan} />
-              <GroceryBasket
-                items={basketItems}
-                updateQuantity={updateQuantity}
-                removeItem={removeItem}
-                clearBasket={clearBasket}
-              />
-            </div>
 
-            {/* Desktop view: Scanner left, Basket right */}
-            <div className="hidden lg:grid lg:grid-cols-2 gap-6">
-              <QRScanner onScan={handleScan} />
-              <GroceryBasket
-                items={basketItems}
-                updateQuantity={updateQuantity}
-                removeItem={removeItem}
-                clearBasket={clearBasket}
-              />
-            </div>
+              <div className="flex flex-col">
+                {/* Basket on the right in desktop, on bottom in mobile */}
+                <GroceryBasket
+                  items={basketItems}
+                  updateQuantity={updateQuantity}
+                  removeItem={removeItem}
+                  clearBasket={clearBasket}
+                />
 
-            {basketItems.length > 0 && (
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={proceedToPayment}
-                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-md text-base font-medium transition-colors shadow-sm hover:shadow-md"
-                >
-                  Proceed to Checkout
-                </button>
+                {/* Proceed to checkout button below the basket with tooltip */}
+                <div className="relative mt-4">
+                  <button
+                    onClick={proceedToPayment}
+                    onMouseEnter={() => basketItems.length === 0 && setShowTooltip(true)}
+                    onMouseLeave={() => setShowTooltip(false)}
+                    disabled={basketItems.length === 0}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-md font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    Proceed to Checkout
+                  </button>
+
+                  {showTooltip && basketItems.length === 0 && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-md whitespace-nowrap">
+                      Add at least 1 item to proceed
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </>
         )}
 
@@ -152,7 +197,7 @@ function App() {
               </button>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <GroceryBasket
                   items={basketItems}

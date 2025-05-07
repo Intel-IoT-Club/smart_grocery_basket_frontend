@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FaCreditCard, FaPaypal, FaApplePay, FaGooglePay, FaLock } from "react-icons/fa"
-import PropTypes from 'prop-types'
+import { FaCreditCard, FaPaypal, FaMoneyBillWave, FaUniversity, FaLock } from "react-icons/fa"
 
 const PaymentGateway = ({ total, onPaymentComplete }) => {
   const [paymentMethod, setPaymentMethod] = useState("card")
@@ -79,19 +78,21 @@ const PaymentGateway = ({ total, onPaymentComplete }) => {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    if (validateForm()) {
-      setIsProcessing(true)
-
-      // Simulate payment processing
-      setTimeout(() => {
-        setIsProcessing(false)
-        onPaymentComplete({
-          success: true,
-          transactionId: Math.random().toString(36).substring(2, 15),
-          method: paymentMethod,
-        })
-      }, 2000)
+    if (paymentMethod === "card" && !validateForm()) {
+      return
     }
+
+    setIsProcessing(true)
+
+    // Simulate payment processing
+    setTimeout(() => {
+      setIsProcessing(false)
+      onPaymentComplete({
+        success: true,
+        transactionId: Math.random().toString(36).substring(2, 15),
+        method: paymentMethod,
+      })
+    }, 2000)
   }
 
   return (
@@ -117,12 +118,36 @@ const PaymentGateway = ({ total, onPaymentComplete }) => {
           <button
             type="button"
             onClick={() => setPaymentMethod("card")}
-            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg sm:p-4 ${
               paymentMethod === "card" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            <FaCreditCard className="text-2xl mb-1 text-gray-700" />
-            <span className="text-sm">Card</span>
+            <FaCreditCard className="text-2xl mb-1 text-gray-700 sm:text-3xl" />
+            <span className="text-sm sm:text-base">Card</span>
+            <span className="text-xs text-gray-500">Credit/Debit</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("upi")}
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+              paymentMethod === "upi" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <FaMoneyBillWave className="text-2xl mb-1 text-green-600" />
+            <span className="text-sm">UPI</span>
+            <span className="text-xs text-gray-500">GPay/PhonePe</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("netbanking")}
+            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
+              paymentMethod === "netbanking" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <FaUniversity className="text-2xl mb-1 text-blue-600" />
+            <span className="text-sm">Net Banking</span>
           </button>
 
           <button
@@ -134,28 +159,6 @@ const PaymentGateway = ({ total, onPaymentComplete }) => {
           >
             <FaPaypal className="text-2xl mb-1 text-blue-600" />
             <span className="text-sm">PayPal</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("applepay")}
-            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
-              paymentMethod === "applepay" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            <FaApplePay className="text-2xl mb-1 text-gray-800" />
-            <span className="text-sm">Apple Pay</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("googlepay")}
-            className={`flex flex-col items-center justify-center p-3 border rounded-lg ${
-              paymentMethod === "googlepay" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            <FaGooglePay className="text-2xl mb-1 text-gray-800" />
-            <span className="text-sm">Google Pay</span>
           </button>
         </div>
       </div>
@@ -271,13 +274,21 @@ const PaymentGateway = ({ total, onPaymentComplete }) => {
         </form>
       )}
 
-      {paymentMethod !== "card" && (
-        <div className="text-center p-6">
-          <p className="text-gray-600 mb-4">
-            You&apos;ll be redirected to{" "}
-            {paymentMethod === "paypal" ? "PayPal" : paymentMethod === "applepay" ? "Apple Pay" : "Google Pay"} to
-            complete your payment.
-          </p>
+      {paymentMethod === "upi" && (
+        <div className="text-center p-4">
+          <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-medium mb-2">Pay using UPI</h3>
+            <p className="text-sm text-gray-600 mb-4">Enter your UPI ID to make the payment</p>
+
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="yourname@upi"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+
           <button
             onClick={handleSubmit}
             disabled={isProcessing}
@@ -301,18 +312,97 @@ const PaymentGateway = ({ total, onPaymentComplete }) => {
                 Processing...
               </>
             ) : (
-              <>Continue to Payment</>
+              <>Pay with UPI</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {paymentMethod === "netbanking" && (
+        <div className="text-center p-4">
+          <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-medium mb-2">Pay using Net Banking</h3>
+            <p className="text-sm text-gray-600 mb-4">Select your bank to proceed</p>
+
+            <div className="mb-4">
+              <select className="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">Select your bank</option>
+                <option value="sbi">State Bank of India</option>
+                <option value="hdfc">HDFC Bank</option>
+                <option value="icici">ICICI Bank</option>
+                <option value="axis">Axis Bank</option>
+                <option value="kotak">Kotak Mahindra Bank</option>
+                <option value="other">Other Banks</option>
+              </select>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={isProcessing}
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+          >
+            {isProcessing ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>Continue to Net Banking</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {paymentMethod === "paypal" && (
+        <div className="text-center p-4">
+          <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-medium mb-2">Pay using PayPal</h3>
+            <p className="text-sm text-gray-600">You'll be redirected to PayPal to complete your payment</p>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={isProcessing}
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+          >
+            {isProcessing ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>Continue to PayPal</>
             )}
           </button>
         </div>
       )}
     </div>
   )
-}
-
-PaymentGateway.propTypes = {
-  total: PropTypes.number.isRequired,
-  onPaymentComplete: PropTypes.func.isRequired
 }
 
 export default PaymentGateway

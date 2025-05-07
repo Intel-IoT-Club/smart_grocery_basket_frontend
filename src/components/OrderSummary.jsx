@@ -1,6 +1,5 @@
 "use client"
 import { FaCheckCircle, FaReceipt } from "react-icons/fa"
-import PropTypes from 'prop-types'
 
 const OrderSummary = ({ orderDetails, onContinueShopping }) => {
   const { transactionId, items, subtotal, tax, total, paymentMethod } = orderDetails
@@ -40,16 +39,12 @@ const OrderSummary = ({ orderDetails, onContinueShopping }) => {
       <div className="mb-6">
         <h3 className="font-medium mb-3">Items Purchased</h3>
         <div className="space-y-3">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div key={item.id} className="flex justify-between">
               <div className="flex items-center gap-2">
-                {item.image && (
-                  <img
-                    src={item.image || "/placeholder.svg"}
-                    alt={item.name}
-                    className="w-10 h-10 object-cover rounded"
-                  />
-                )}
+                <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
+                  {index + 1}
+                </div>
                 <div>
                   <p className="font-medium">{item.name}</p>
                   <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
@@ -88,26 +83,6 @@ const OrderSummary = ({ orderDetails, onContinueShopping }) => {
       </div>
     </div>
   )
-}
-
-OrderSummary.propTypes = {
-  orderDetails: PropTypes.shape({
-    transactionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    items: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        price: PropTypes.number.isRequired,
-        quantity: PropTypes.number.isRequired,
-        image: PropTypes.string
-      })
-    ).isRequired,
-    subtotal: PropTypes.number.isRequired,
-    tax: PropTypes.number.isRequired,
-    total: PropTypes.number.isRequired,
-    paymentMethod: PropTypes.string.isRequired
-  }).isRequired,
-  onContinueShopping: PropTypes.func.isRequired
 }
 
 export default OrderSummary

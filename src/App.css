@@ -324,6 +324,12 @@ body {
 
 .w-8 {
   width: 2rem;
+  min-width: 2rem;
+}
+
+.h-8 {
+  height: 2rem;
+  min-height: 2rem;
 }
 
 .w-10 {
@@ -449,10 +455,42 @@ body {
   border-width: 0;
 }
 
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.bottom-full {
+  bottom: 100%;
+}
+\
+.left-1/2 {
+  left: 50%;
+}
+
+.transform {
+  transform: translateX(-50%);
+}
+
+.-translate-x-1/2 {
+  transform: translateX(-50%);
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
 /* Media queries for responsive design */
 @media (min-width: 640px) {
   .sm\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -480,4 +518,45 @@ body {
   .md\:block {
     display: block;
   }
+}
+
+/* Improved mobile responsiveness */
+@media (max-width: 640px) {
+  button {
+    min-height: 44px;
+  }
+
+  .flex items-center gap-2 button {
+    min-height: 36px;
+  }
+
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .p-6 {
+    padding: 1rem;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+
+  .text-xl {
+    font-size: 1.125rem;
+  }
+
+  .gap-6 {
+    gap: 0.75rem;
+  }
+
+  .mb-6 {
+    margin-bottom: 0.75rem;
+  }
+}
+
+.header-green {
+  background: #10b981; /* Tailwind green-500 */
+  color: white;
 }
