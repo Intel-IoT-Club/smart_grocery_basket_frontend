@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import GroceryBasket from '../components/GroceryBasket';
-import QRScanner from '../components/QRScannerr';
+import QRScanner from '../components/QRScanner';
 
 interface Product {
   productId: string;
