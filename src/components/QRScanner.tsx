@@ -1,6 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CameraIcon,
+  PlayIcon,
+  StopIcon,
+  CheckCircleIcon,
+  WarningCircleIcon,
+  InfoIcon,
+  ScanIcon,
+  QrCodeIcon 
+} from '@phosphor-icons/react';
 
 interface Product {
   productId: string;
@@ -15,19 +26,12 @@ interface QRScannerProps {
   onScan: (product: Product) => void;
 }
 
-/**
- * Minimal “Barcode” shape for detect()’s return value.
- */
 interface Barcode {
   rawValue: string;
   format: string;
   boundingBox?: DOMRectReadOnly;
 }
 
-/**
- * We declare both constructors as properties of window,
- * so we never introduce an unused `class` keyword.
- */
 declare global {
   interface Window {
     BarcodeDetector: {
@@ -43,51 +47,91 @@ declare global {
   }
 }
 
+const pulseVariants = {
+  initial: { scale: 1, opacity: 0.8 },
+  animate: {
+    scale: [1, 1.05, 1],
+    opacity: [0.8, 1, 0.8],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const statusVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.3 }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -10,
+    transition: { duration: 0.2 }
+  }
+};
+
+const scanLineVariants = {
+  animate: {
+    y: [0, 200, 0],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
 const QRScanner = ({ onScan }: QRScannerProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [scannedData, setScannedData] = useState<string>("");
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [status, setStatus] = useState<string>("");
+  const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Now strongly type this ref as either BarcodeDetector instance or null
-  const barcodeDetectorRef = useRef<
-    InstanceType<typeof window.BarcodeDetector> | null
-  >(null);
+  const barcodeDetectorRef = useRef<InstanceType<typeof window.BarcodeDetector> | null>(null);
   const scanningRef = useRef<boolean>(false);
   const scannedProductsRef = useRef<Set<string>>(new Set<string>());
+
+  const updateStatus = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setStatus(message);
+    setStatusType(type);
+  };
 
   useEffect(() => {
     if ("BarcodeDetector" in window) {
       barcodeDetectorRef.current = new window.BarcodeDetector({
         formats: [
-          "code_128",
-          "code_39",
-          "code_93",
-          "codabar",
-          "ean_13",
-          "ean_8",
-          "itf",
-          "pdf417",
-          "upc_a",
-          "upc_e",
-          "qr_code",
+          "code_128", "code_39", "code_93", "codabar", 
+          "ean_13", "ean_8", "itf", "pdf417", 
+          "upc_a", "upc_e", "qr_code"
         ],
       });
-      setStatus("Ready to scan. Click 'Start Scanning'");
+      updateStatus("Scanner ready. Tap to start scanning", 'info');
     } else {
-      setStatus("Barcode Detector API is not supported in this browser.");
+      updateStatus("Barcode scanning not supported in this browser", 'error');
     }
 
     return () => {
       stopScanner();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startScanner = async () => {
     try {
+      setIsLoading(true);
+      updateStatus("Initializing camera...", 'info');
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
       });
 
       if (videoRef.current) {
@@ -97,25 +141,29 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
 
       scanningRef.current = true;
       setIsScanning(true);
-      setStatus("Scanning... Hold barcode in view");
+      setIsLoading(false);
+      updateStatus("Hold barcode steady in the frame", 'info');
       detectBarcode();
     } catch (error) {
-      console.error("Camera Error:", error);
-      setStatus("Failed to access the camera.");
+      console.error("Camera access error:", error);
+      setIsLoading(false);
+      updateStatus("Unable to access camera", 'error');
     }
   };
 
   const detectBarcode = async () => {
-    if (
-      !barcodeDetectorRef.current ||
-      !videoRef.current ||
-      !videoRef.current.srcObject
-    ) {
+    if (!barcodeDetectorRef.current || !videoRef.current?.srcObject) {
       return;
     }
 
     const mediaStream = videoRef.current.srcObject as MediaStream;
     const track = mediaStream.getVideoTracks()[0];
+    
+    if (!track || !("ImageCapture" in window)) {
+      updateStatus("Camera capture not supported", 'error');
+      return;
+    }
+
     const imageCapture = new window.ImageCapture(track);
 
     const scanFrame = async () => {
@@ -130,12 +178,12 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
           if (!scannedProductsRef.current.has(productId)) {
             scannedProductsRef.current.add(productId);
             setScannedData(productId);
-            setStatus(`Detected: ${productId}`);
+            updateStatus(`Processing: ${productId}`, 'success');
             await processProductScan(productId);
           }
         }
       } catch (error) {
-        console.error("Barcode detection error:", error);
+        console.error("Detection error:", error);
       }
 
       if (scanningRef.current) {
@@ -148,30 +196,37 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
 
   const processProductScan = async (productId: string) => {
     try {
+      setIsLoading(true);
       const response = await fetch("http://localhost:5001/api/products");
       const products: Product[] = await response.json();
       const product = products.find((p) => p.productId === productId);
 
       if (product) {
         onScan(product);
-        setStatus(`Product: ${product.name}`);
+        updateStatus(`Added: ${product.name}`, 'success');
       } else {
-        setStatus(`Unknown ProductId: ${productId}`);
+        updateStatus(`Product not found: ${productId}`, 'error');
       }
     } catch (error) {
-      console.error("Error fetching product:", error);
-      setStatus(`Error fetching product: ${productId}`);
+      console.error("Product fetch error:", error);
+      updateStatus(`Network error for: ${productId}`, 'error');
+    } finally {
+      setIsLoading(false);
     }
 
-    // Allow re-scanning after 3 seconds
+    // Reset for re-scanning after delay
     setTimeout(() => {
       scannedProductsRef.current.delete(productId);
+      if (scanningRef.current) {
+        updateStatus("Ready to scan next item", 'info');
+      }
     }, 3000);
   };
 
   const stopScanner = () => {
     scanningRef.current = false;
     setIsScanning(false);
+    setIsLoading(false);
 
     if (videoRef.current?.srcObject) {
       const mediaStream = videoRef.current.srcObject as MediaStream;
@@ -179,7 +234,7 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
       videoRef.current.srcObject = null;
     }
 
-    setStatus("Scanner stopped");
+    updateStatus("Scanner stopped", 'info');
   };
 
   const toggleScanner = () => {
@@ -190,85 +245,191 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
     }
   };
 
+  const getStatusIcon = () => {
+    if (isLoading) return <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><ScanIcon weight="bold" className="h-5 w-5" /></motion.div>;
+    
+    switch (statusType) {
+      case 'success':
+        return <CheckCircleIcon weight="fill" className="h-5 w-5" />;
+      case 'error':
+        return <WarningCircleIcon weight="fill" className="h-5 w-5" />;
+      default:
+        return <InfoIcon weight="bold" className="h-5 w-5" />;
+    }
+  };
+
+  const getStatusBadgeClass = () => {
+    switch (statusType) {
+      case 'success':
+        return 'status-badge success';
+      case 'error':
+        return 'status-badge warning';
+      default:
+        return 'status-badge info';
+    }
+  };
+
   return (
-    <div className="card shadow-sm h-full">
-      <div className="card-header bg-white py-3 px-4">
-        <h3 className="text-xl font-semibold text-gray-800 mb-0 flex items-center">
-          <i className="fas fa-camera mr-2" style={{ color: "#00a76f" }}></i>
-          Barcode Scanner
-        </h3>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card h-full flex flex-col"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-4 p-6 border-b border-subtle">
+        <div className="p-3 rounded-xl" style={{ background: 'var(--color-dark-green)' }}>
+          <QrCodeIcon 
+            weight="duotone"
+            className="h-6 w-6" 
+            style={{ color: 'var(--color-green)' }} 
+          />
+        </div>
+        <div>
+          <h3 className="heading-tertiary mb-1">
+            Barcode Scanner
+          </h3>
+        </div>
       </div>
 
-      <div className="p-4 flex flex-col items-center">
-        <div className="relative mb-3 w-full">
-          <div
-            className={`relative ${
-              isScanning ? "" : "bg-gray-100 rounded border"
-            }`}
-            style={{ minHeight: "200px" }}
-          >
+      {/* Scanner Content */}
+      <div className="flex-1 flex flex-col p-6">
+        {/* Camera Preview */}
+        <div className="relative mb-6 flex-1 min-h-[280px] max-h-[350px]">
+          <div className={`relative w-full h-full rounded-2xl overflow-hidden transition-all duration-300 ${
+            isScanning ? 'bg-black shadow-2xl' : 'border-2 border-dashed border-subtle'
+          }`} style={{ background: isScanning ? '#000' : 'var(--color-surface-light)' }}>
+            
             <video
               ref={videoRef}
-              className={`w-full rounded ${isScanning ? "border" : "hidden"}`}
-              style={{ maxHeight: "300px", objectFit: "cover" }}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                isScanning ? 'opacity-100' : 'opacity-0'
+              }`}
               autoPlay
               playsInline
               muted
             />
 
             {!isScanning && (
-              <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-                <div className="text-center text-gray-500">
-                  <i className="fas fa-camera text-5xl mb-3"></i>
-                  <p>Camera inactive</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="mb-4"
+                >
+                  <CameraIcon weight="duotone" className="h-20 w-20" />
+                </motion.div>
+                <h4 className="font-semibold text-lg mb-2" style={{ color: 'var(--color-off-white)' }}>
+                  Camera Preview
+                </h4>
+                <p className="text-sm text-center leading-relaxed max-w-xs">
+                  Position barcode within the scanning area for best results
+                </p>
+              </div>
+            )}
+
+            {/* Enhanced Scanning Overlay */}
+            {isScanning && (
+              <div className="absolute inset-0 pointer-events-none">
+                {/* Main Scanning Frame */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+                  <motion.div
+                    variants={pulseVariants}
+                    initial="initial"
+                    animate="animate"
+                    className="w-full h-full border-2 rounded-2xl"
+                    style={{ borderColor: 'var(--color-bright-green)' }}
+                  />
+                  
+                  {/* Animated Scan Line */}
+                  <div className="absolute inset-2 overflow-hidden rounded-xl">
+                    <motion.div
+                      variants={scanLineVariants}
+                      animate="animate"
+                      className="absolute left-0 right-0 h-0.5 opacity-80"
+                      style={{ background: 'var(--color-bright-green)', boxShadow: '0 0 10px var(--color-bright-green)' }}
+                    />
+                  </div>
+                  
+                  {/* Corner Indicators */}
+                  <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 rounded-tl-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
+                  <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 rounded-tr-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
+                  <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 rounded-bl-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 rounded-br-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
+                </div>
+
+                {/* Status Indicator */}
+                <div className="absolute top-4 left-4">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/70 backdrop-blur-sm">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: 'var(--color-bright-green)' }}
+                    />
+                    <span className="text-xs font-medium" style={{ color: 'var(--color-off-white)' }}>
+                      SCANNING
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        <div
-          className={`alert w-full mb-3 ${
-            scannedData ? "alert-success" : "alert-secondary"
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="mr-3">
-              {scannedData ? (
-                <i className="fas fa-check-circle text-2xl"></i>
-              ) : (
-                <i className="fas fa-info-circle text-2xl"></i>
-              )}
-            </div>
-            <div>
-              <p className="mb-0">{status}</p>
+        {/* Status Display */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={status}
+            variants={statusVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className={`${getStatusBadgeClass()} w-full mb-6 justify-start p-4`}
+          >
+            {getStatusIcon()}
+            <div className="flex-1">
+              <p className="font-semibold text-sm mb-1">{status}</p>
               {scannedData && (
-                <p className="mb-0 text-green-600">
-                  Last scanned: {scannedData}
+                <p className="text-xs opacity-75">
+                  ID: {scannedData}
                 </p>
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
 
-        <button
+        {/* Enhanced Control Button */}
+        <motion.button
           onClick={toggleScanner}
-          className={`w-full font-semibold py-3 px-4 rounded-md transition-all duration-300 ${
-            isScanning ? "btn-stop-scan" : "btn-start-scan"
-          }`}
+          className={`btn w-full ${isScanning ? 'btn-danger' : 'btn-primary'} focus-ring`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          disabled={!barcodeDetectorRef.current || isLoading}
         >
-          {isScanning ? (
+          {isLoading ? (
             <>
-              <i className="fas fa-stop mr-2"></i>Stop Scanning
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <ScanIcon weight="bold" className="h-5 w-5" />
+              </motion.div>
+              Initializing...
+            </>
+          ) : isScanning ? (
+            <>
+              <StopIcon weight="bold" className="h-5 w-5" />
+              Stop Scanner
             </>
           ) : (
             <>
-              <i className="fas fa-play mr-2"></i>Start Scanning
+              <PlayIcon weight="fill" className="h-5 w-5" />
+              Start Scanning
             </>
           )}
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
