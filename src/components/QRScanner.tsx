@@ -1,16 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CameraIcon,
   PlayIcon,
-  StopIcon,
-  CheckCircleIcon,
-  WarningCircleIcon,
-  InfoIcon,
-  ScanIcon,
-  QrCodeIcon 
+  StopIcon
 } from '@phosphor-icons/react';
 
 import { productService } from '../services/api';
@@ -50,44 +44,6 @@ declare global {
     };
   }
 }
-
-const pulseVariants = {
-  initial: { scale: 1, opacity: 0.8 },
-  animate: {
-    scale: [1, 1.05, 1],
-    opacity: [0.8, 1, 0.8],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
-
-const statusVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.3 }
-  },
-  exit: { 
-    opacity: 0, 
-    y: -10,
-    transition: { duration: 0.2 }
-  }
-};
-
-const scanLineVariants = {
-  animate: {
-    y: [0, 200, 0],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
 
 const QRScanner = ({ onScan }: QRScannerProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -262,190 +218,120 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
   };
 
   const getStatusIcon = () => {
-    if (isLoading) return <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><ScanIcon weight="bold" className="h-5 w-5" /></motion.div>;
+    if (isLoading) return <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />;
     
     switch (statusType) {
       case 'success':
-        return <CheckCircleIcon weight="fill" className="h-5 w-5" />;
+        return <div className="w-4 h-4 rounded-full bg-green-500" />;
       case 'error':
-        return <WarningCircleIcon weight="fill" className="h-5 w-5" />;
+        return <div className="w-4 h-4 rounded-full bg-red-500" />;
       default:
-        return <InfoIcon weight="bold" className="h-5 w-5" />;
-    }
-  };
-
-  const getStatusBadgeClass = () => {
-    switch (statusType) {
-      case 'success':
-        return 'status-badge success';
-      case 'error':
-        return 'status-badge warning';
-      default:
-        return 'status-badge info';
+        return <div className="w-4 h-4 rounded-full bg-blue-500" />;
     }
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card h-full flex flex-col"
-    >
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4 p-6 border-b border-subtle">
-        <div className="p-3 rounded-xl" style={{ background: 'var(--color-dark-green)' }}>
-          <QrCodeIcon 
-            weight="duotone"
-            className="h-6 w-6" 
-            style={{ color: 'var(--color-green)' }} 
-          />
+      <div className="flex items-center gap-3 p-4 border-b border-gray-800">
+        <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center">
+          <CameraIcon className="w-5 h-5 text-gray-400" />
         </div>
         <div>
-          <h3 className="heading-tertiary mb-1">
-            Barcode Scanner
-          </h3>
+          <h3 className="text-lg font-medium text-white">Scanner</h3>
+          <p className="text-sm text-gray-500">Ready to scan</p>
         </div>
       </div>
 
-      {/* Scanner Content */}
-      <div className="flex-1 flex flex-col p-6">
-        {/* Camera Preview */}
-        <div className="relative mb-6 flex-1 min-h-[280px] max-h-[350px]">
-          <div className={`relative w-full h-full rounded-2xl overflow-hidden transition-all duration-300 ${
-            isScanning ? 'bg-black shadow-2xl' : 'border-2 border-dashed border-subtle'
-          }`} style={{ background: isScanning ? '#000' : 'var(--color-surface-light)' }}>
-            
-            <video
-              ref={videoRef}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${
-                isScanning ? 'opacity-100' : 'opacity-0'
-              }`}
-              autoPlay
-              playsInline
-              muted
-            />
+      {/* Camera Preview */}
+      <div className="flex-1 p-4">
+        <div className={`relative w-full h-full min-h-[200px] rounded-xl overflow-hidden ${
+          isScanning ? 'bg-black' : 'border-2 border-dashed border-gray-700'
+        }`}>
+          
+          <video
+            ref={videoRef}
+            className={`w-full h-full object-cover ${
+              isScanning ? 'opacity-100' : 'opacity-0'
+            }`}
+            autoPlay
+            playsInline
+            muted
+          />
 
-            {!isScanning && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted">
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="mb-4"
-                >
-                  <CameraIcon weight="duotone" className="h-20 w-20" />
-                </motion.div>
-                <h4 className="font-semibold text-lg mb-2" style={{ color: 'var(--color-off-white)' }}>
-                  Camera Preview
-                </h4>
-                <p className="text-sm text-center leading-relaxed max-w-xs">
-                  Position barcode within the scanning area for best results
-                </p>
+          {!isScanning && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-800">
+              <CameraIcon className="w-12 h-12 mb-3" />
+              <p className="text-sm text-center">Tap start to begin scanning</p>
+            </div>
+          )}
+
+          {/* Simple Scanning Indicator */}
+          {isScanning && (
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-green-400 rounded-lg"></div>
+              <div className="absolute top-4 left-4 px-2 py-1 bg-black/80 rounded text-xs text-green-400 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                Scanning...
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      </div>
 
-            {/* Enhanced Scanning Overlay */}
-            {isScanning && (
-              <div className="absolute inset-0 pointer-events-none">
-                {/* Main Scanning Frame */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
-                  <motion.div
-                    variants={pulseVariants}
-                    initial="initial"
-                    animate="animate"
-                    className="w-full h-full border-2 rounded-2xl"
-                    style={{ borderColor: 'var(--color-bright-green)' }}
-                  />
-                  
-                  {/* Animated Scan Line */}
-                  <div className="absolute inset-2 overflow-hidden rounded-xl">
-                    <motion.div
-                      variants={scanLineVariants}
-                      animate="animate"
-                      className="absolute left-0 right-0 h-0.5 opacity-80"
-                      style={{ background: 'var(--color-bright-green)', boxShadow: '0 0 10px var(--color-bright-green)' }}
-                    />
-                  </div>
-                  
-                  {/* Corner Indicators */}
-                  <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 rounded-tl-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
-                  <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 rounded-tr-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
-                  <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 rounded-bl-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 rounded-br-2xl" style={{ borderColor: 'var(--color-off-white)' }} />
-                </div>
-
-                {/* Status Indicator */}
-                <div className="absolute top-4 left-4">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/70 backdrop-blur-sm">
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: 'var(--color-bright-green)' }}
-                    />
-                    <span className="text-xs font-medium" style={{ color: 'var(--color-off-white)' }}>
-                      SCANNING
-                    </span>
-                  </div>
-                </div>
-              </div>
+      {/* Status */}
+      <div className="p-4 pt-0">
+        <div className={`flex items-center gap-3 p-3 rounded-xl ${
+          statusType === 'success' ? 'bg-green-500/10 text-green-400' :
+          statusType === 'error' ? 'bg-red-500/10 text-red-400' :
+          'bg-gray-800 text-gray-300'
+        }`}>
+          {getStatusIcon()}
+          <div className="flex-1">
+            <p className="text-sm font-medium">{status}</p>
+            {scannedData && (
+              <p className="text-xs opacity-70 font-mono mt-1">
+                {scannedData}
+              </p>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Status Display */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={status}
-            variants={statusVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className={`${getStatusBadgeClass()} w-full mb-6 justify-start p-4`}
-          >
-            {getStatusIcon()}
-            <div className="flex-1">
-              <p className="font-semibold text-sm mb-1">{status}</p>
-              {scannedData && (
-                <p className="text-xs opacity-75">
-                  ID: {scannedData}
-                </p>
-              )}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Enhanced Control Button */}
-        <motion.button
+      {/* Control Button */}
+      <div className="p-4 pt-0">
+        <button
           onClick={toggleScanner}
-          className={`btn w-full ${isScanning ? 'btn-danger' : 'btn-primary'} focus-ring`}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          className={`w-full px-4 py-3 rounded-xl font-medium transition-colors ${
+            isScanning 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          } disabled:opacity-50`}
           disabled={!barcodeDetectorRef.current || isLoading}
         >
           {isLoading ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              >
-                <ScanIcon weight="bold" className="h-5 w-5" />
-              </motion.div>
-              Initializing...
-            </>
-          ) : isScanning ? (
-            <>
-              <StopIcon weight="bold" className="h-5 w-5" />
-              Stop Scanner
-            </>
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Starting...
+            </div>
           ) : (
-            <>
-              <PlayIcon weight="fill" className="h-5 w-5" />
-              Start Scanning
-            </>
+            <div className="flex items-center justify-center gap-2">
+              {isScanning ? (
+                <>
+                  <StopIcon className="w-4 h-4" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <PlayIcon className="w-4 h-4" />
+                  Start
+                </>
+              )}
+            </div>
           )}
-        </motion.button>
+        </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
