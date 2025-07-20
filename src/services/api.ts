@@ -66,6 +66,12 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Log the request details in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`API Request: ${options.method || 'GET'} ${url}`);
+      console.log(`Attempt: ${attempt}/${this.retryAttempts}`);
+    }
+    
     try {
       // Create the fetch promise
       const fetchPromise = fetch(url, {
@@ -81,6 +87,12 @@ class ApiClient {
         fetchPromise,
         this.createTimeoutPromise(this.timeout)
       ]);
+
+      // Log response details in development
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`API Response: ${response.status} ${response.statusText}`);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      }
 
       // Handle HTTP errors
       if (!response.ok) {
@@ -369,3 +381,30 @@ export const healthService = new HealthService();
 
 // Export classes for testing
 export { ProductService, HealthService, ApiClient };
+
+// Debug utility function to test API connectivity
+export const testApiConnection = async () => {
+  console.log('Testing API Connection...');
+  console.log('Base URL:', API_CONFIG.BASE_URL);
+  
+  try {
+    const response = await healthService.checkHealth();
+    console.log('✅ API Connection successful:', response);
+    return true;
+  } catch (error) {
+    console.error('❌ API Connection failed:', error);
+    
+    // Additional debugging
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch')) {
+        console.error('This is likely a CORS issue. Check backend CORS configuration.');
+      } else if (error.message.includes('timeout')) {
+        console.error('Request timed out. Check backend availability.');
+      } else if (error.message.includes('Network')) {
+        console.error('Network error. Check internet connection.');
+      }
+    }
+    
+    return false;
+  }
+};
