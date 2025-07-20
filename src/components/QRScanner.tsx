@@ -20,6 +20,8 @@ interface Product {
   image: string;
   discounts?: string;
   category: string;
+  stock?: number;
+  expiryDate?: string;
 }
 
 interface QRScannerProps {
@@ -197,19 +199,49 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
   const processProductScan = async (productId: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:5001/api/products");
-      const products: Product[] = await response.json();
+      updateStatus("Looking up product...", 'info');
+      
+      // Use environment-based API URL
+      const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:5001'
+        : 'https://your-api-domain.com'; // Replace with your production API URL
+      
+      const response = await fetch(`${API_BASE_URL}/api/products`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const apiResponse = await response.json();
+      
+      // Check if the API response has the expected structure
+      if (!apiResponse.success || !apiResponse.data) {
+        throw new Error('Invalid API response structure');
+      }
+      
+      const products: Product[] = apiResponse.data;
       const product = products.find((p) => p.productId === productId);
 
       if (product) {
-        onScan(product);
-        updateStatus(`Added: ${product.name}`, 'success');
+        // Check if product is available (not expired and in stock)
+        const isExpired = product.expiryDate && new Date(product.expiryDate) < new Date();
+        const isInStock = product.stock && product.stock > 0;
+        
+        if (isExpired) {
+          updateStatus(`Product expired: ${product.name}`, 'error');
+        } else if (!isInStock) {
+          updateStatus(`Product out of stock: ${product.name}`, 'error');
+        } else {
+          onScan(product);
+          updateStatus(`Added: ${product.name}`, 'success');
+        }
       } else {
         updateStatus(`Product not found: ${productId}`, 'error');
       }
     } catch (error) {
       console.error("Product fetch error:", error);
-      updateStatus(`Network error for: ${productId}`, 'error');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      updateStatus(`Network error: ${errorMessage}`, 'error');
     } finally {
       setIsLoading(false);
     }

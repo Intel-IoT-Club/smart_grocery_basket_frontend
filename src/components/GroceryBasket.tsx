@@ -19,6 +19,8 @@ interface Product {
   image: string;
   discounts?: string;
   category: string;
+  stock?: number;
+  expiryDate?: string;
 }
 
 interface BasketItem {
