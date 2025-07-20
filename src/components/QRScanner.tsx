@@ -13,6 +13,8 @@ import {
   QrCodeIcon 
 } from '@phosphor-icons/react';
 
+import { productService } from '../services/api';
+
 interface Product {
   productId: string;
   name: string;
@@ -201,26 +203,8 @@ const QRScanner = ({ onScan }: QRScannerProps) => {
       setIsLoading(true);
       updateStatus("Looking up product...", 'info');
       
-      // Use environment-based API URL
-      const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-        ? 'http://localhost:5001'
-        : 'https://your-api-domain.com'; // Replace with your production API URL
-      
-      const response = await fetch(`${API_BASE_URL}/api/products`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const apiResponse = await response.json();
-      
-      // Check if the API response has the expected structure
-      if (!apiResponse.success || !apiResponse.data) {
-        throw new Error('Invalid API response structure');
-      }
-      
-      const products: Product[] = apiResponse.data;
-      const product = products.find((p) => p.productId === productId);
+      // Use the proper API service instead of hardcoded URLs
+      const product = await productService.searchByBarcode(productId);
 
       if (product) {
         // Check if product is available (not expired and in stock)
