@@ -7,11 +7,22 @@ export const API_CONFIG = {
   BASE_URL: typeof window !== 'undefined' 
     ? window.location.hostname === 'localhost' 
       ? 'http://localhost:5001'
-      : 'https://your-api-domain.com' // Replace with your production API URL
+      : 'https://smart-grocery-basket-backend.onrender.com'
     : 'http://localhost:5001',
   TIMEOUT: 10000, // 10 seconds
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 second
+} as const;
+
+// Frontend URLs Configuration
+export const FRONTEND_CONFIG = {
+  PRODUCTION_URL: 'https://smart-grocery-basket-frontend.vercel.app',
+  DEVELOPMENT_URL: 'http://localhost:3000',
+  CURRENT_URL: typeof window !== 'undefined' 
+    ? window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000'
+      : 'https://smart-grocery-basket-frontend.vercel.app'
+    : 'http://localhost:3000',
 } as const;
 
 // Application Metadata
