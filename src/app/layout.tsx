@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext"; // <-- 1. IMPORT THIS
 
 export const metadata: Metadata = {
   title: "Smart Grocery Basket",
@@ -30,9 +31,11 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body className="min-h-screen bg-gray-950 text-white">
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <AuthProvider> {/* <-- 2. WRAP THE CONTENT */}
+          <main className="min-h-screen">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );
