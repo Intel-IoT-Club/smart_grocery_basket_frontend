@@ -5,6 +5,7 @@
 
 import { Product, ApiResponse } from '../types';
 import { API_CONFIG, ERROR_MESSAGES } from '../constants';
+import { BasketItem } from '../types';
 
 /**
  * HTTP methods enum
@@ -71,13 +72,16 @@ class ApiClient {
       console.log(`API Request: ${options.method || 'GET'} ${url}`);
       console.log(`Attempt: ${attempt}/${this.retryAttempts}`);
     }
-    
+
+    const token = localStorage.getItem('authToken'); // Get token from localStorage
+
     try {
       // Create the fetch promise
       const fetchPromise = fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
           ...options.headers,
         },
       });
@@ -185,6 +189,109 @@ class ApiClient {
     });
   }
 }
+
+// Add this class inside services/api.ts
+class AuthService extends ApiClient {
+  async createGuestSession(): Promise<{ sessionId: string }> {
+    // This endpoint needs to be created on your backend
+    return this.post<{ sessionId: string }>('/api/sessions/guest');
+  }
+  async login(email: string, password: string): Promise<ApiResponse<{ token: string }>> {
+    return this.post('/api/auth/login', { email, password });
+  }
+  async register(email: string, password: string): Promise<ApiResponse<{ token: string }>> {
+    return this.post('/api/auth/register', { email, password });
+  }
+}
+
+export const authService = new AuthService();
+
+class CartService extends ApiClient {
+  private readonly endpoint = '/api/cart';
+
+  /**
+   * Get the current user's cart
+   */
+  async getCart(sessionId: string): Promise<ApiResponse<BasketItem[]>> {
+    try {
+      return await this.get<ApiResponse<BasketItem[]>>(`${this.endpoint}/${sessionId}`);
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Add an item to the cart
+   */
+  async addToCart(sessionId: string, item: { productId: string; quantity: number }): Promise<ApiResponse<BasketItem>> {
+    try {
+      return await this.post<ApiResponse<BasketItem>>(`${this.endpoint}/${sessionId}/items`, item);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Remove a product from the cart
+   */
+  async removeFromCart(sessionId: string, productId: string): Promise<ApiResponse<void>> {
+    try {
+      if (!productId) {
+        throw new Error(ERROR_MESSAGES.VALIDATION.INVALID_PRODUCT_ID);
+      }
+      return await this.delete<ApiResponse<void>>(
+        `${this.endpoint}/${sessionId}/items/${encodeURIComponent(productId)}`
+      );
+    } catch (error) {
+      console.error(`Error removing item ${productId} from cart:`, error);
+      throw this.handleError(error);
+    }
+  }
+  
+  /**
+   * Update the quantity of an item in the cart
+   */
+  async updateItemQuantity(sessionId: string, productId: string, quantity: number): Promise<ApiResponse<BasketItem>> {
+    try {
+      if (!productId) {
+        throw new Error(ERROR_MESSAGES.VALIDATION.INVALID_PRODUCT_ID);
+      }
+      return await this.put<ApiResponse<BasketItem>>(
+        `${this.endpoint}/${sessionId}/items/${encodeURIComponent(productId)}`,
+        { quantity }
+      );
+    } catch (error) {
+      console.error(`Error updating quantity for item ${productId}:`, error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Clear all items from the cart
+   */
+  async clearCart(sessionId: string): Promise<ApiResponse<void>> {
+    try {
+      // This endpoint would delete all items associated with the session
+      return await this.delete<ApiResponse<void>>(`${this.endpoint}/${sessionId}/items`);
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Handle and transform errors
+   */
+  private handleError(error: any): Error {
+    if (error instanceof Error) {
+      return error;
+    }
+    return new Error(ERROR_MESSAGES.NETWORK.SERVER_ERROR);
+  }
+}
+export const cartService = new CartService();
 
 /**
  * Product API service

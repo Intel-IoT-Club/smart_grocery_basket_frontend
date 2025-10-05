@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { authService } from '@/services/api';
 
 interface AuthContextType {
   sessionId: string | null;
@@ -24,12 +25,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // In a real app, you'd validate this token with the backend.
         setAuthToken(existingToken);
       } else {
-        // No token, so create a temporary guest session.
+        // No token, so create a real temporary guest session.
         let guestSessionId = sessionStorage.getItem('guestSessionId');
         if (!guestSessionId) {
-          // Placeholder for an API call to the backend to get a real session ID
-          guestSessionId = `guest_${Date.now()}`; // Simulating a new guest ID
-          sessionStorage.setItem('guestSessionId', guestSessionId);
+          try {
+            // Replace placeholder with a real API call
+            const { sessionId } = await authService.createGuestSession();
+            guestSessionId = sessionId;
+            sessionStorage.setItem('guestSessionId', guestSessionId);
+          } catch (error) {
+            console.error("Failed to create guest session:", error);
+          }
         }
         setSessionId(guestSessionId);
       }

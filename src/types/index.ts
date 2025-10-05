@@ -2,6 +2,7 @@
  * TypeScript interfaces and types for the Smart Grocery Basket application
  */
 
+// This interface defines the shape of a product from the database or API
 export interface Product {
   productId: string;
   name: string;
@@ -13,8 +14,15 @@ export interface Product {
   expiryDate?: string;
 }
 
-export interface BasketItem extends Product {
+// This interface defines the shape of an item once it's inside the shopping basket
+export interface BasketItem {
+  id: string; // Corresponds to productId
+  name: string;
+  price: number;
+  image: string;
   quantity: number;
+  category: string;
+  discounts?: string;
 }
 
 export interface ApiResponse<T = any> {

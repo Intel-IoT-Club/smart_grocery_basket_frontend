@@ -150,7 +150,7 @@ export const throttle = <T extends (...args: any[]) => any>(
  * Calculate basket totals
  */
 export const calculateBasketTotals = (items: BasketItem[]) => {
-  const subtotal = items.reduce((total, item) => total + (item.mrpPrice * item.quantity), 0);
+  const subtotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
   const deliveryFee = 0; // Free delivery
   const total = subtotal + deliveryFee;
@@ -231,6 +231,8 @@ export const storage = {
  */
 export const productToBasketItem = (product: Product, quantity = DEFAULT_VALUES.PRODUCT.QUANTITY): BasketItem => {
   return {
+    id: product.productId, // or generateId() if needed
+    price: product.mrpPrice,
     ...product,
     quantity
   };
