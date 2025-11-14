@@ -4,13 +4,13 @@
 
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: typeof window !== 'undefined' 
-    ? window.location.hostname === 'localhost' 
+  BASE_URL: typeof window !== 'undefined'
+    ? window.location.hostname === 'localhost'
       ? 'http://localhost:5001'
       : 'https://smart-grocery-basket-backend.onrender.com'
     : 'http://localhost:5001',
-  TIMEOUT: 10000, // 10 seconds
-  RETRY_ATTEMPTS: 3,
+  TIMEOUT: 30000, // 30 seconds
+  RETRY_ATTEMPTS: 2,
   RETRY_DELAY: 1000, // 1 second
 } as const;
 
