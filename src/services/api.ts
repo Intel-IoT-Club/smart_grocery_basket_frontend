@@ -65,21 +65,29 @@ class ApiClient {
     attempt = 1
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // Log the request details in development
     if (process.env.NODE_ENV !== 'production') {
       console.log(`API Request: ${options.method || 'GET'} ${url}`);
       console.log(`Attempt: ${attempt}/${this.retryAttempts}`);
     }
-    
+
     try {
+      // Add Authorization header if token exists
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...options.headers as Record<string, string>,
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       // Create the fetch promise
       const fetchPromise = fetch(url, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
       });
 
       // Race between fetch and timeout
@@ -136,7 +144,7 @@ class ApiClient {
    */
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     let url = endpoint;
-    
+
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
@@ -144,7 +152,7 @@ class ApiClient {
           searchParams.append(key, String(value));
         }
       });
-      
+
       const queryString = searchParams.toString();
       if (queryString) {
         url += `?${queryString}`;
@@ -291,7 +299,7 @@ class ProductService extends ApiClient {
       try {
         const response = await this.getProducts({ search: barcode });
         const products = response.data || [];
-        
+
         // Look for exact match first
         const exactMatch = products.find(p => p.productId === barcode);
         if (exactMatch) return exactMatch;
@@ -310,9 +318,9 @@ class ProductService extends ApiClient {
    */
   private validateProductData(productData: any): void {
     const required = ['productId', 'name', 'mrpPrice', 'stock'];
-    const missing = required.filter(field => 
-      productData[field] === undefined || 
-      productData[field] === null || 
+    const missing = required.filter(field =>
+      productData[field] === undefined ||
+      productData[field] === null ||
       productData[field] === ''
     );
 
@@ -386,14 +394,14 @@ export { ProductService, HealthService, ApiClient };
 export const testApiConnection = async () => {
   console.log('Testing API Connection...');
   console.log('Base URL:', API_CONFIG.BASE_URL);
-  
+
   try {
     const response = await healthService.checkHealth();
     console.log('✅ API Connection successful:', response);
     return true;
   } catch (error) {
     console.error('❌ API Connection failed:', error);
-    
+
     // Additional debugging
     if (error instanceof Error) {
       if (error.message.includes('Failed to fetch')) {
@@ -404,7 +412,7 @@ export const testApiConnection = async () => {
         console.error('Network error. Check internet connection.');
       }
     }
-    
+
     return false;
   }
 };

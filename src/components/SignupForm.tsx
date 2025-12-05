@@ -1,38 +1,49 @@
 'use client';
 
-import { FC, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FC, useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { SignupData } from '@/types/auth';
 
 const SignupForm: FC = () => {
-  const router = useRouter();
+  const { register } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState<SignupData>({
-    name: '',
+    username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'customer'
   });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Avoid hydration mismatch by rendering only after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      setIsLoading(false);
       return;
     }
 
     try {
-      // TODO: Implement signup logic here
-      // const response = await register(formData);
-      router.push('/login'); // Redirect to login page after successful registration
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+      const { confirmPassword, ...registerData } = formData;
+      await register(registerData);
+      // Redirect is handled in AuthContext
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.');
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -40,82 +51,138 @@ const SignupForm: FC = () => {
     }));
   };
 
+  if (!mounted) {
+    return null; // or a loading skeleton
+  }
+
   return (
     <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 animate-fadeIn">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-400">Error</h3>
+              <div className="mt-2 text-sm text-red-300">{error}</div>
+            </div>
+          </div>
         </div>
       )}
-      <div className="rounded-md shadow-sm -space-y-px">
+
+      <div className="space-y-4">
         <div>
-          <label htmlFor="name" className="sr-only">
-            Full Name
+          <label htmlFor="username" className="block text-sm font-medium text-gray-300">
+            Username
           </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={handleChange}
-          />
+          <div className="mt-1">
+            <input
+              id="username"
+              name="username"
+              type="text"
+              required
+              className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm"
+              placeholder="johndoe"
+              value={formData.username}
+              onChange={handleChange}
+            />
+          </div>
         </div>
+
         <div>
-          <label htmlFor="email" className="sr-only">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-300">
             Email address
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Email address"
-            value={formData.email}
-            onChange={handleChange}
-          />
+          <div className="mt-1">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm"
+              placeholder="john@example.com"
+              value={formData.email}
+              onChange={handleChange}
+            />
+          </div>
         </div>
+
         <div>
-          <label htmlFor="password" className="sr-only">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-300">
             Password
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-          />
+          <div className="mt-1">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+            />
+          </div>
         </div>
+
         <div>
-          <label htmlFor="confirmPassword" className="sr-only">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300">
             Confirm Password
           </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-          />
+          <div className="mt-1">
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm"
+              placeholder="••••••••"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="role" className="block text-sm font-medium text-gray-300">
+            I am a
+          </label>
+          <div className="mt-1">
+            <select
+              id="role"
+              name="role"
+              required
+              className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm"
+              value={formData.role}
+              onChange={handleChange}
+            >
+              <option value="customer">Customer (Shopper)</option>
+              <option value="owner">Shop Owner (Retailer)</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <div>
         <button
           type="submit"
-          className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          disabled={isLoading}
+          className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/30"
         >
-          Create Account
+          {isLoading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating Account...
+            </span>
+          ) : (
+            'Create Account'
+          )}
         </button>
       </div>
     </form>

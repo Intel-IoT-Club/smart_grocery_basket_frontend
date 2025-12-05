@@ -1,9 +1,10 @@
 import { LoginCredentials, SignupData, AuthResponse } from '@/types/auth';
+import { API_CONFIG } from '@/constants';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || API_CONFIG.BASE_URL;
 
 export const register = async (data: Omit<SignupData, 'confirmPassword'>): Promise<AuthResponse> => {
-  const response = await fetch(`${API_URL}/auth/register`, {
+  const response = await fetch(`${API_URL}/api/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -12,14 +13,15 @@ export const register = async (data: Omit<SignupData, 'confirmPassword'>): Promi
   });
 
   if (!response.ok) {
-    throw new Error('Registration failed');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Registration failed');
   }
 
   return response.json();
 };
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -28,16 +30,16 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
   });
 
   if (!response.ok) {
-    throw new Error('Login failed');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Login failed');
   }
 
   return response.json();
 };
 
 export const logout = async (): Promise<void> => {
-  // TODO: Implement logout logic
-  // Clear local storage, cookies, etc.
   localStorage.removeItem('token');
+  localStorage.removeItem('user');
 };
 
 export const getToken = (): string | null => {
