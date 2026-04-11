@@ -104,6 +104,15 @@ class ApiClient {
 
       // Handle HTTP errors
       if (!response.ok) {
+        // Intercept 401 Unauthorized globally to log out the user
+        if (response.status === 401) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.dispatchEvent(new Event('auth-unauthorized'));
+          }
+        }
+
         const errorData = await response.json().catch(() => ({}));
         const error: ApiError = new Error(
           errorData.error || errorData.message || `HTTP ${response.status}`
