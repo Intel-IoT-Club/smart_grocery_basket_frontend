@@ -13,6 +13,12 @@ export default function Navigation() {
         return null;
     }
 
+    // Hide global navigation on the root landing page for unauthenticated users, 
+    // since we designed a custom stunning nav for the hero section
+    if (pathname === '/' && !isAuthenticated) {
+        return null;
+    }
+
     return (
         <nav className="bg-gray-900 border-b border-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
